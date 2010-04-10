@@ -60,7 +60,7 @@ def extractMovies(movies, year, outputDirectory)
 	puts 'Filtering'
 	filteredMovies = movies.reject do |movie|
 		movie.name[0] == '"' ||
-		movie.rating < 7.5 ||
+		movie.rating < 7.0 ||
 		movie.votes < 1000 ||
 		movie.year != year ||
 		movie.flag != nil
@@ -79,4 +79,4 @@ outputDirectory = 'E:\Code\Ruby\imdb\data\\'
 movies = processRatings target
 puts "Loaded #{movies.length} movies"
 
-(1990..2010).each { |year| extractMovies(movies, year, outputDirectory) }
+(1970..2010).each { |year| extractMovies(movies, year, outputDirectory) }
