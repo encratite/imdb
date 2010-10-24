@@ -1,0 +1,37 @@
+body
+{
+	font-family: "Arial", sans-serif;
+}
+
+a
+{
+	color: #008aff;
+	text-decoration: none;
+	background: none;
+}
+
+a:visited
+{
+	color: #0078de;
+}
+
+a:active
+{
+	color: #30a0ff;
+}
+
+a:hover
+{
+	color: #ffa200;
+}
+
+table
+{
+	border-collapse: collapse;
+}
+
+td
+{
+	padding: 0 1em 0 1em;
+	border: 1px solid black;
+}

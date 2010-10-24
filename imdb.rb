@@ -1,5 +1,13 @@
 require 'nil/file'
 require 'nil/string'
+require 'nil/http'
+
+require 'search-engine/BingSearchEngine'
+
+require 'www-library/SiteRenderer'
+require 'www-library/HTMLWriter'
+
+require_relative 'configuration'
 
 class Movie
 	attr_reader :name, :rating, :votes, :year, :flag
@@ -23,13 +31,13 @@ class Movie
 end
 
 def processRatings(target)
-	puts 'Reading'
+	puts 'Reading the IMDB database file...'
 	data = Nil.readFile target
-	puts 'Done'
 	if data == nil
 		puts "Unable to read #{target}"
 		return nil
 	end
+	puts 'Done reading the IMDB database file'
 	data = data.extract('MOVIE RATINGS REPORT', '-------')
 	return nil if data == nil
 	lines = data.split "\n"
@@ -55,28 +63,73 @@ def processRatings(target)
 	return movies
 end
 
+def generateOutput(movies)
+	searchEngine = BingSearchEngine.new
+	writer = WWWLib::HTMLWriter.new
+	writer.table do
+		writer.tr do
+			columns =
+			[
+				'Rank',
+				'Name',
+				'Year',
+				'Rating',
+				'Votes',
+			]
+			columns.each do |column|
+				writer.th { column }
+			end
+		end
+		rank = 1
+		movies.each do |movie|
+			target = "#{movie.name} #{movie.year} site:imdb.com"
+			puts "Processing #{movie.name}"
+			results = searchEngine.search(target)
+			if results == nil || results.empty?
+				puts "Unable to retrieve the IMDB URL of movie #{movie.name}"
+				next
+			end
+			url = results.first.url
+			writer.tr do
+				writer.td { rank.to_s }
+				writer.td do
+					writer.a(href: url) { movie.name }
+				end
+				writer.td { movie.year.to_s }
+				writer.td { movie.rating.to_s }
+				writer.td { movie.votes.to_s }
+			end
+			rank += 1
+		end
+	end
+	return writer.output
+end
+
 def extractMovies(movies, year, outputDirectory)
 	puts "Processing year #{year}"
 	puts 'Filtering'
 	filteredMovies = movies.reject do |movie|
 		movie.name[0] == '"' ||
-		movie.rating < 7.0 ||
-		movie.votes < 1000 ||
+		movie.rating < IMDBConfiguration::MinimumRating ||
+		movie.votes < IMDBConfiguration::MinimumVotes ||
 		movie.year != year ||
 		movie.flag != nil
 	end
 	puts 'Sorting'
 	sortedMovies = filteredMovies.sort
-	puts 'Serialising'
-	output = sortedMovies.map { |movie| movie.description }.join("\n")
-	puts 'Writing'
-	path = outputDirectory + year.to_s
-	Nil.writeFile(path, output)
+	renderer = WWWLib::SiteRenderer.new
+	renderer.addStylesheet('../style/imdb.css')
+	title = "Movies of the year #{year}"
+	content = generateOutput sortedMovies
+	output = renderer.get(title, content)
+	fileName = "#{year}.html"
+	outputPath = Nil.joinPaths(outputDirectory, fileName)
+	Nil.writeFile(outputPath, output)
 end
 
-target = 'G:\IMDB\ratings.list'
-outputDirectory = 'E:\Code\Ruby\imdb\data\\'
+target = IMDBConfiguration::RatingsPath
+outputDirectory = IMDBConfiguration::OutputDirectory
 movies = processRatings target
 puts "Loaded #{movies.length} movies"
 
-(1970..2010).each { |year| extractMovies(movies, year, outputDirectory) }
+(IMDBConfiguration::FirstYear..IMDBConfiguration::LastYear).each { |year| extractMovies(movies, year, outputDirectory) }
