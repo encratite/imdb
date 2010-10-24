@@ -1,3 +1,5 @@
+require 'iconv'
+
 require 'nil/file'
 require 'nil/string'
 require 'nil/http'
@@ -54,7 +56,7 @@ def processRatings(target)
 		description = line[32..-1]
 		match = pattern.match description
 		next if match == nil
-		name = match[1]
+		name = Iconv.iconv("UTF-8", "ISO-8859-1", match[1]).join
 		year = match[2].to_i
 		flag = match[4]
 		movie = Movie.new(name, rating, votes, year, flag)
